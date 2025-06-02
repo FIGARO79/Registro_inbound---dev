@@ -1,0 +1,1470 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Registro Inbound Sandvik</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+        <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet" />
+        <style>
+            /* General styles */
+            body {
+                font-family: "Inter", sans-serif; /* Apply Inter font globally */
+                background-color: #f9fafb; /* Light gray background */
+            }
+
+            /* Main container wrapper (optional centering/max-width) */
+            .container-wrapper {
+                /* max-width: 1600px; /* Adjust or remove as needed */
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            /* Label preview styles */
+            .label-container {
+                border: 1px solid #d1d5db; /* Light gray border */
+                padding: 0.75rem; /* 12px */
+                background-color: white;
+                color: #1f2937; /* Dark text */
+                width: 265px; /* Fixed width for PREVIEW */
+                height: 378px; /* Fixed height for PREVIEW */
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                box-shadow:
+                    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+                    0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Soft shadow */
+                border-radius: 0.375rem; /* 6px */
+                margin-left: auto; /* Center horizontally if parent is wider */
+                margin-right: auto;
+                position: relative; /* For internal positioning */
+                overflow: hidden; /* Prevent content overflow */
+            }
+            /* QR code container within the label */
+            #qrCodeContainer {
+                min-height: 96px; /* Min height */
+                width: 96px; /* Fixed width */
+                height: 96px; /* Fixed height */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden; /* Prevent QR overflow */
+                border: 1px solid #e5e7eb; /* Light border */
+                border-radius: 0.25rem; /* 4px */
+                flex-shrink: 0; /* Prevent shrinking */
+            }
+            /* Generated QR code image */
+            #qrCodeContainer img {
+                display: block;
+                margin: auto; /* Center image if smaller than container */
+                max-width: 100%;
+                max-height: 100%;
+            }
+            /* Placeholder if no QR code */
+            .qr-placeholder {
+                width: 100%;
+                height: 100%;
+                border: 1px dashed #9ca3af; /* Dashed border */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                font-size: 0.75rem; /* 12px */
+                color: #6b7280; /* Gray text */
+                border-radius: 0.25rem;
+            }
+            /* Text styles within the label */
+            .label-item-code,
+            .label-item-description {
+                font-size: 0.875rem; /* 14px */
+                font-weight: 700; /* Bold */
+                line-height: 1.3; /* Adjusted line height */
+                word-break: break-all; /* Break long words */
+                margin-bottom: 0.25rem; /* Small bottom margin */
+            }
+            .label-data-field {
+                font-size: 0.75rem; /* 12px */
+                line-height: 1.4;
+                display: grid;
+                grid-template-columns: auto 1fr; /* Label auto, value flexible */
+                gap: 0.5rem; /* 8px */
+                align-items: start; /* Align items to the start vertically */
+            }
+            .label-data-field span:first-child { /* Field label */
+                font-weight: 500;
+                color: #4b5563;
+                white-space: nowrap;
+            }
+            .label-data-field span:last-child, /* Field value span */
+            .label-data-field input[type="number"].label-qty-input { /* Quantity input in label */
+                font-weight: 500;
+                text-align: right;
+                word-break: break-all;
+            }
+
+            /* Specific style for the quantity input within the label */
+            .label-qty-input {
+                -moz-appearance: textfield; /* Hide spinners in Firefox */
+                appearance: textfield;
+                border: none;
+                background-color: transparent;
+                padding: 0;
+                margin: 0;
+                max-width: 70px; /* Limit max width */
+                font-size: inherit; /* Inherit font size */
+                font-weight: inherit; /* Inherit font weight */
+                color: inherit; /* Inherit text color */
+                text-align: right; /* Align text right */
+                outline: none; /* Remove focus outline */
+                box-shadow: none; /* Remove shadow */
+                justify-self: end; /* Align input to the end (right) of its grid cell */
+                line-height: 1.2; /* Match .label-data-field */
+            }
+            .label-qty-input::-webkit-outer-spin-button,
+            .label-qty-input::-webkit-inner-spin-button {
+                -webkit-appearance: none; /* Hide spinners in Chrome/Safari/Edge */
+                margin: 0;
+            }
+
+            /* Label disclaimer text */
+            .label-disclaimer {
+                font-size: 0.625rem; /* 10px */
+                color: #4b5563; /* Gray */
+                line-height: 1.3;
+                margin-right: 0.5rem; /* Space between disclaimer and QR */
+                flex-grow: 1; /* Allow it to take available space */
+            }
+            /* Label logo */
+            .label-logo {
+                max-width: 130px;
+                max-height: 25px;
+                object-fit: contain; /* Scale while maintaining aspect ratio */
+                margin-bottom: 0.75rem; /* 12px */
+            }
+            /* Bottom section of the label (disclaimer + QR) */
+            .label-bottom-section {
+                margin-top: auto; /* Push to the bottom */
+                display: flex;
+                align-items: flex-end; /* Align items (disclaimer, QR) to the bottom */
+                justify-content: space-between; /* Space between disclaimer (left) and QR (right) */
+                gap: 0.5rem; /* Minimum gap */
+            }
+
+            /* General form styles */
+            input[type="text"],
+            input[type="number"],
+            select {
+                border: 1px solid #d1d5db; /* Gray border */
+                padding: 6px 12px;
+                border-radius: 0.375rem; /* 6px */
+                width: 100%;
+                box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
+                transition:
+                    border-color 0.2s,
+                    box-shadow 0.2s; /* Smooth transition */
+            }
+            input:focus,
+            select:focus {
+                outline: 2px solid transparent;
+                outline-offset: 2px;
+                border-color: #ffbf24ed; /* Orange border on focus */
+                box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4)); /* Orange glow */
+            }
+            .form-label {
+                font-weight: 500; /* Medium */
+                margin-bottom: 3px;
+                display: block;
+                color: #374151; /* Dark gray */
+                font-size: 0.875rem; /* 14px */
+            }
+            /* Read-only data display fields */
+            .data-field {
+                background-color: #f3f4f6; /* Light gray background */
+                padding: 8px 12px;
+                border-radius: 0.375rem; /* 6px */
+                min-height: 38px; /* Consistent minimum height */
+                border: 1px solid #d1d5db; /* Gray border */
+                color: #374151; /* Dark gray text */
+                overflow-wrap: break-word; /* Wrap long text */
+                font-size: 0.875rem; /* 14px */
+                line-height: 1.5;
+                display: flex; /* Vertically center single-line text */
+                align-items: center;
+            }
+
+            /* Table styles */
+            th,
+            td {
+                border: 1px solid #e5e7eb; /* Table border */
+                padding: 10px 12px;
+                text-align: left;
+                vertical-align: middle; /* Align text vertically centered */
+                font-size: 0.875rem; /* 14px */
+                line-height: 1.4;
+            }
+            th {
+                background-color: #f9fafb; /* Header background */
+                font-weight: 600; /* Semibold */
+                font-size: 0.75rem; /* 12px */
+                text-transform: uppercase;
+                color: #6b7280; /* Gray text */
+                white-space: nowrap; /* Prevent line breaks */
+                letter-spacing: 0.05em; /* Letter spacing */
+                position: relative; /* For positioning sort arrows */
+            }
+            tbody tr:nth-child(even) {
+                background-color: #f9fafb; /* Even row background */
+            }
+            tbody tr:hover {
+                background-color: #f0f9ff; /* Light blue hover background */
+            }
+
+            /* Button styles */
+            button {
+                padding: 9px 15px;
+                border-radius: 0.375rem; /* 6px */
+                cursor: pointer;
+                transition:
+                    background-color 0.2s,
+                    box-shadow 0.2s;
+                font-weight: 500; /* Medium */
+                font-size: 0.875rem; /* 14px */
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Subtle shadow */
+                display: inline-flex; /* Align icon and text */
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem; /* Space between icon and text */
+            }
+            button:focus {
+                outline: 2px solid transparent;
+                outline-offset: 2px;
+                box-shadow: 0 0 0 3px rgba(13, 11, 7, 0.53); /* Focus glow */
+            }
+            .btn-primary {
+                background-color: #fbbf24; /* Sandvik yellow/orange */
+                color: #1f2937; /* Dark text */
+                border: 1px solid transparent;
+            }
+            .btn-primary:hover {
+                background-color: #f59e0b; /* Darker yellow/orange */
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            }
+            .btn-secondary {
+                background-color: #6b7280; /* Gray */
+                color: white;
+                border: 1px solid transparent;
+            }
+            .btn-secondary:hover {
+                background-color: #4b5563; /* Darker gray */
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            }
+            .btn-print-label {
+                width: 265px; /* Match label width */
+                margin-top: 0.5rem; /* Space above */
+                margin-left: auto;
+                margin-right: auto;
+                display: block; /* Take full line */
+            }
+
+            /* Feedback/Notification Area */
+            #feedbackArea {
+                margin-top: 1rem;
+                padding: 0.75rem 1rem;
+                border-radius: 0.375rem; /* 6px */
+                font-size: 0.875rem; /* 14px */
+                font-weight: 500;
+                display: none; /* Hidden by default */
+                border: 1px solid transparent;
+                transition: opacity 0.3s ease-in-out;
+                opacity: 0; /* Transparent by default */
+            }
+            #feedbackArea.show {
+                display: block; /* Make visible */
+                opacity: 1; /* Make opaque */
+            }
+            #feedbackArea.success { /* Green */
+                background-color: #dcfce7;
+                border-color: #4ade80;
+                color: #15803d;
+            }
+            #feedbackArea.error { /* Red */
+                background-color: #fee2e2;
+                border-color: #f87171;
+                color: #b91c1c;
+            }
+            #feedbackArea.info { /* Blue */
+                background-color: #e0f2fe;
+                border-color: #7dd3fc;
+                color: #075985;
+            }
+
+            /* Table Sorting Styles */
+            .sortable-header {
+                cursor: pointer;
+                user-select: none; /* Prevent text selection */
+                padding-right: 24px !important; /* Space for arrow */
+            }
+            /* Default arrow (hidden) */
+            .sortable-header::after {
+                content: "";
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                margin-top: -4px; /* Vertically center */
+                border: 4px solid transparent;
+                opacity: 0.3; /* Dim by default */
+                pointer-events: none; /* Doesn't interfere with click */
+                transition: opacity 0.2s ease-in-out; /* Smooth transition */
+            }
+            /* Ascending arrow */
+            .sortable-header.sort-asc::after {
+                border-bottom-color: #4b5563; /* Up arrow */
+                opacity: 1;
+            }
+            /* Descending arrow */
+            .sortable-header.sort-desc::after {
+                border-top-color: #4b5563; /* Down arrow */
+                opacity: 1;
+            }
+
+            /* Print Styles */
+            @media print {
+                @page {
+                    size: auto; /* Let printer decide paper size */
+                    margin: 10mm; /* Print margin */
+                }
+                body {
+                    margin: 0;
+                    -webkit-print-color-adjust: exact; /* Force colors/backgrounds in Chrome/Safari */
+                    print-color-adjust: exact; /* Standard property */
+                }
+                /* Hide everything by default */
+                body * {
+                    visibility: hidden;
+                }
+                /* Show only the print area and its contents */
+                .label-print-area,
+                .label-print-area * {
+                    visibility: visible;
+                }
+                /* Position the print area */
+                .label-print-area {
+                    position: absolute; /* Or relative */
+                    top: 0;
+                    left: 0;
+                    width: 100%; /* Take available width */
+                    height: auto; /* Auto height */
+                    margin: 0;
+                    padding: 0;
+                    border: none;
+                    box-shadow: none;
+                }
+                /* Style the label container for printing */
+                .label-container {
+                    width: 100%; /* Use area width */
+                    height: auto;
+                    /* aspect-ratio: 70 / 100; /* Optional: Force aspect ratio */
+                    margin: 0;
+                    padding: 2mm; /* Inner padding */
+                    border: 1px solid black; /* Visible border */
+                    box-shadow: none;
+                    page-break-inside: avoid; /* Prevent breaking inside label */
+                    background: white;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                }
+                /* Adjust fonts for printing */
+                .label-item-code,
+                .label-item-description {
+                    font-size: 11pt;
+                    font-weight: bold;
+                    line-height: 1.3 !important; /* Ensure line height */
+                }
+                .label-data-field span {
+                    font-size: 8pt;
+                }
+                .label-disclaimer {
+                    font-size: 6pt;
+                }
+                /* Adjust QR code for printing */
+                #qrCodeContainer {
+                    width: 18mm;
+                    height: 18mm;
+                    border: none;
+                }
+                .qr-placeholder {
+                    border: 1px dashed black;
+                }
+                /* Adjust logo for printing */
+                .label-logo {
+                    max-width: 45%;
+                    max-height: 8%;
+                    width: auto;
+                    height: auto;
+                    object-fit: contain;
+                    margin-bottom: 0.5rem;
+                    display: block;
+                }
+                #qrCodeContainer img {
+                    max-width: 100%;
+                    max-height: 100%;
+                }
+
+                /* --- PRINT MODIFICATION --- */
+                /* Hide the editable quantity input during printing */
+                #labelQtyPackInput {
+                    display: none !important;
+                    visibility: hidden !important;
+                }
+                /* Ensure the quantity span is visible during printing */
+                #labelQtyPackSpan {
+                    visibility: visible !important;
+                    display: inline !important; /* Or block as needed */
+                    font-size: 8pt !important; /* Ensure print font size */
+                    font-weight: 500 !important; /* Ensure print font weight */
+                    text-align: right !important; /* Ensure print alignment */
+                    color: #1f2937 !important; /* Ensure print color */
+                    line-height: 1.4 !important; /* Ensure print line height */
+                }
+                /* --- END PRINT MODIFICATION --- */
+
+                /* Hide other unwanted elements during printing */
+                #printLabelBtn, .btn-print-label, .form-label, input:not(.label-qty-input), select, /* Hide other inputs */
+                .data-field, #feedbackArea, h1, h2, table, #addLogEntryBtn, #exportLogBtn, /* Hide export buttons */
+                #exportSummaryBtn, /* Hide summary button */
+                #emptyTableMessage, .container-wrapper > img:first-of-type /* Hide main logo */ {
+                    display: none !important;
+                    visibility: hidden !important;
+                }
+            }
+            /* --- SCREEN MODIFICATION --- */
+            /* Hide the quantity span on screen (use input instead) */
+            @media screen {
+                #labelQtyPackSpan {
+                    display: none;
+                }
+            }
+            /* --- END SCREEN MODIFICATION --- */
+        </style>
+    </head>
+    <body class="bg-white p-3 md:p-1">
+        <div class="container-wrapper mx-auto px-3 sm:px-3 lg:px-5">
+            <img src="static\images\logoytpe_sandvik.png"
+                alt="Logotipo Sandvik"
+                width="200"
+                height="30"
+                class="mb-46"
+                onerror="this.onerror=null; this.src='https://placehold.co/300x50?text=Imagen+no+disponible';" />                                
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <div class="lg:col-span-2 space-y-1 bg-white p-31 rounded-lg ">
+                    <h1 class="text-m font-semibold text-gray-800 mb-30 border-b pb-0">Formulario de Registro</h1>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="grn1" class="form-label">GRN 1.</label>
+                            <input
+                                type="text"
+                                id="grn1"
+                                name="grn1"
+                                placeholder="Ej: GRN-12345"
+                                oninput="this.value = this.value.toUpperCase()" />
+                        </div>
+                        <div>
+                            <label for="waybill" class="form-label">Waybill</label>
+                            <input
+                                type="text"
+                                id="waybill"
+                                name="waybill"
+                                placeholder="Ej: WB-67890"
+                                oninput="this.value = this.value.toUpperCase()" />
+                        </div>
+                    </div>
+                    <div>
+                        <label for="itemCode" class="form-label">Item Code.</label>
+                        <div class="flex items-end gap-2">
+                            <input
+                                type="text"
+                                id="itemCode"
+                                name="itemCode"
+                                class="flex-grow"
+                                placeholder="Ingrese código y presione Enter o Buscar"
+                                oninput="this.value = this.value.toUpperCase()" />
+                            <button id="findItemBtn" class="btn-secondary h-9 w-32 flex-shrink-0">
+                                Buscar Artículo
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="itemDescription" class="form-label">Item Description.</label>
+                        <div id="itemDescription" class="data-field min-h-[38px]"></div>
+                    </div>
+                    <div>
+                        <label for="quantity" class="form-label">Quantity Received.</label>
+                        <input type="number" id="quantity" name="quantity" min="1" value="" class="w-1/3 sm:w-1/4" />
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="binLocation" class="form-label">Bin Location (Original).</label>
+                            <div id="binLocation" class="data-field min-h-[38px]"></div>
+                        </div>
+                        <div>
+                            <label for="aditionalBins" class="form-label">Aditional Bins.</label>
+                            <div id="aditionalBins" class="data-field min-h-[38px]"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="relocateBin" class="form-label">Relocate Bin (New).</label>
+                        <div class="flex items-center gap-2">
+                            <input
+                                type="text"
+                                id="relocateBin"
+                                name="relocateBin"
+                                class="flex-grow"
+                                placeholder="(Opcional)"
+                                oninput="this.value = this.value.toUpperCase()" />
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-31 rounded-md border border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-600 mb-23 uppercase tracking-wider">
+                            Resumen de Cantidades (Formulario)
+                        </h3>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label for="qtyReceived" class="form-label text-xs">Qty. Received</label>
+                                <div id="qtyReceived" class="data-field text-sm"></div>
+                            </div>
+                            <div>
+                                <label for="qtyGrn" class="form-label text-xs">Qty. GRN (Expected)</label>
+                                <div id="qtyGrn" class="data-field text-sm"></div>
+                            </div>
+                            <div>
+                                <label for="difference" class="form-label text-xs">Difference.</label>
+                                <div id="difference" class="data-field text-sm"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="feedbackArea"></div>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-3 text-center">Vista Previa Etiqueta</h2>
+                    <div class="label-print-area">
+                        <div class="label-container">
+                            <div>
+                                <div class="mb-3">
+                                    <img src="static\images\logoytpe_sandvik.png"
+                                        alt="Logotipo Sandvik"
+                                        class="label-logo"
+                                        onerror="this.onerror=null; this.src='https://placehold.co/130x25/f3f4f6/6b7280?text=Error'; this.alt='[Imagen de Error Cargando Logo Pequeño]';" />
+                                    <p class="label-item-code" id="labelItemCode">ITEM CODE</p>
+                                    <p class="label-item-description" id="labelItemDescription">Item Description</p>
+                                </div>
+                                <div class="mb-2 space-y-2">
+                                    <div class="label-data-field">
+                                        <span>Quantity Received</span>
+                                        <input
+                                            type="number"
+                                            id="labelQtyPackInput"
+                                            class="label-qty-input"
+                                            value="1"
+                                            min="0" />
+                                        <span id="labelQtyPackSpan">1</span>
+                                    </div>
+                                    <div class="label-data-field">
+                                        <span>Product weight</span><span id="labelWeight">N/A</span>
+                                    </div>
+                                    <div class="label-data-field">
+                                        <span>Bin Location</span><span id="labelBinLocation">BIN</span>
+                                    </div>
+                                    <div class="label-data-field">
+                                        <span>Reception Date</span><span id="labelReceptionDate">DD/MM/YY</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="label-bottom-section">
+                                <p class="label-disclaimer" id="labelDisclaimer">
+                                    All trademarks and logotypes appearing on this label are owned by Sandvik Group
+                                </p>
+                                <div id="qrCodeContainer">
+                                    <div class="qr-placeholder">QR Code</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="printLabelBtn" class="btn-primary h-10 btn-print-label">Imprimir Etiqueta</button>
+                </div>
+            </div>
+
+            <div class="flex justify-start items-center mb-6 border- pt- gap-4">
+                    <button id="addLogEntryBtn" class="btn-primary w-60 h-10">Añadir Registro a Tabla</button>
+                <button id="exportLogBtn" class="btn-secondary w-60 h-10">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 mr-1"
+                        viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path
+                            fill-rule="evenodd"
+                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Exportar Log Completo
+                </button>
+                <button id="exportSummaryBtn" class="btn-primary w-60 h-10">Resumen recepción</button>
+            </div>
+
+            <h2 class="text-2m font-semibold mb-4 text-gray-700">Registros Inbound</h2>
+            <div class="overflow-x-auto shadow-md rounded-lg border border-gray-200 bg-white">
+                <table class="min-w-full" id="logTable">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="sortable-header" data-column-index="0">GRN 1.</th>
+                            <th class="sortable-header" data-column-index="1">Waybill</th>
+                            <th class="sortable-header" data-column-index="2">Item Code</th>
+                            <th class="sortable-header" data-column-index="3">Item Description</th>
+                            <th class="sortable-header" data-column-index="4">Bin Location (Original)</th>
+                            <th class="sortable-header" data-column-index="5">Relocated Bin (New)</th>
+                            <th class="sortable-header" data-column-index="6">Qty. Received</th>
+                            <th class="sortable-header" data-column-index="7">Qty. GRN</th> <th class="sortable-header" data-column-index="8">Difference</th> <th class="sortable-header" data-column-index="9">Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody" class="divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+            <p id="emptyTableMessage" class="text-center text-gray-500 mt-4 hidden">No hay registros aún.</p>
+        </div>
+
+        <script>
+            // --- Constants and Configuration ---
+            const API_BASE_URL = "http://localhost:5000/api"; // Base URL for the backend API
+
+            // --- DOM Elements (Cache references for performance) ---
+            const grn1Input = document.getElementById("grn1");
+            const waybillInput = document.getElementById("waybill");
+            const itemCodeInput = document.getElementById("itemCode");
+            const quantityInput = document.getElementById("quantity"); // Main quantity input in form
+            const relocateBinInput = document.getElementById("relocateBin");
+            const itemDescriptionDiv = document.getElementById("itemDescription"); // Display field
+            const binLocationDiv = document.getElementById("binLocation"); // Display field
+            const aditionalBinsDiv = document.getElementById("aditionalBins"); // Display field
+            const qtyReceivedDiv = document.getElementById("qtyReceived"); // In form summary section
+            const qtyGrnDiv = document.getElementById("qtyGrn"); // In form summary section
+            const differenceDiv = document.getElementById("difference"); // In form summary section
+            const labelItemCode = document.getElementById("labelItemCode"); // Label preview
+            const labelItemDescription = document.getElementById("labelItemDescription"); // Label preview
+            const labelQtyPackInput = document.getElementById("labelQtyPackInput"); // Editable quantity in label
+            const labelQtyPackSpan = document.getElementById("labelQtyPackSpan"); // Quantity span for printing
+            const labelWeight = document.getElementById("labelWeight"); // Label preview
+            const labelReceptionDate = document.getElementById("labelReceptionDate"); // Label preview
+            const labelBinLocation = document.getElementById("labelBinLocation"); // Label preview
+            const qrCodeContainer = document.getElementById("qrCodeContainer"); // Label preview
+            const logTable = document.getElementById("logTable"); // Log table element
+            const logTableBody = document.getElementById("logTableBody"); // Log table body
+            const findItemBtn = document.getElementById("findItemBtn"); // Button
+            const printLabelBtn = document.getElementById("printLabelBtn"); // Button
+            const addLogEntryBtn = document.getElementById("addLogEntryBtn"); // Button
+            const exportLogBtn = document.getElementById("exportLogBtn"); // Button for full log export
+            const exportSummaryBtn = document.getElementById("exportSummaryBtn"); // Button for summary export
+            const emptyTableMessage = document.getElementById("emptyTableMessage"); // Message when table is empty
+            const feedbackArea = document.getElementById("feedbackArea"); // Area for user notifications
+
+            // --- Global State Variables ---
+            let currentItemData = null; // Stores data of the currently searched item
+            let qrCodeInstance = null; // Holds the QRCode.js instance
+            let feedbackTimeout = null; // Timer for hiding feedback messages
+            let currentSortColumnIndex = 9; // Default sort column index (Timestamp)
+            let currentSortDirection = "desc"; // Default sort direction (Descending)
+
+            // --- Functions ---
+
+            /**
+             * Displays feedback messages to the user.
+             * @param {string} message - The message to display.
+             * @param {string} [type="info"] - The type of message ('success', 'error', 'info').
+             */
+            function showFeedback(message, type = "info") {
+                if (!feedbackArea) return; // Exit if feedback area doesn't exist
+                if (feedbackTimeout) clearTimeout(feedbackTimeout); // Clear previous timeout if any
+
+                feedbackArea.textContent = message; // Set the message text
+                feedbackArea.className = `feedback ${type} show`; // Apply type and 'show' class for visibility/styling
+                feedbackArea.style.display = "block"; // Ensure the element is visible
+
+                // Set a timeout to hide the message automatically
+                feedbackTimeout = setTimeout(() => {
+                    feedbackArea.classList.remove("show"); // Remove 'show' class to trigger fade-out
+                    // Wait for the CSS transition to complete before setting display to none
+                    setTimeout(() => {
+                        // Only hide if another message hasn't been shown in the meantime
+                        if (!feedbackArea.classList.contains("show")) {
+                            feedbackArea.className = "feedback"; // Reset classes
+                            feedbackArea.style.display = "none"; // Hide the element
+                        }
+                    }, 300); // Should match the opacity transition duration in CSS
+                }, 5000); // Hide after 5 seconds
+            }
+
+             /**
+             * Fetches item data from the backend API based on the entered item code.
+             * Updates the form and label preview upon successful fetch.
+             */
+         // Dentro de la función findItemData en inbound.html
+
+            async function findItemData() {
+                const itemCodeInput = document.getElementById("itemCode"); // Asegúrate que este ID sea correcto
+                const grn1Input = document.getElementById("grn1");       // Asegúrate que este ID sea correcto
+
+                const code = itemCodeInput.value.trim().toUpperCase();
+                const grn1Value = grn1Input.value.trim().toUpperCase(); // Obtener valor del GRN
+
+                if (!code) {
+                    showFeedback("Por favor, ingrese un código de artículo.", "error");
+                    clearItemSpecificFields();
+                    return;
+                }
+
+                if (!grn1Value) { // Si el GRN es obligatorio para esta búsqueda
+                    showFeedback("Por favor, ingrese un valor para 'GRN 1.' para obtener la cantidad esperada correcta.", "error");
+                    // Opcionalmente, podrías limpiar solo el campo de cantidad GRN si el ítem ya estaba cargado
+                    // y permitir una búsqueda "genérica" si así lo deseas, pero la lógica actual del backend espera un GRN.
+                    // Por ahora, asumiremos que es necesario.
+                    // itemDescriptionDiv.textContent = ""; // Limpiar descripción si se requiere GRN
+                    // binLocationDiv.textContent = "";
+                    // aditionalBinsDiv.textContent = "";
+                    // qtyGrnDiv.textContent = ""; // Limpiar Qty GRN
+                    // calculateDifference();
+                    return;
+                }
+
+                showFeedback("Buscando artículo...", "info");
+                currentItemData = null;
+
+                try {
+                    // Construir la URL correctamente con ambos parámetros como segmentos separados
+                    const fetchURL = `${API_BASE_URL}/find_item/${encodeURIComponent(code)}/${encodeURIComponent(grn1Value)}`;
+                    console.log("Fetching URL:", fetchURL); // Añade esto para depurar la URL que se está construyendo
+
+                    const response = await fetch(fetchURL);
+                    // const data = await response.json(); // Mueve esto para después de verificar response.ok
+
+                    if (response.ok) {
+                        const data = await response.json(); // Ahora parsea el JSON solo si la respuesta es OK
+                        currentItemData = data;
+
+                        itemDescriptionDiv.textContent = currentItemData.description || "N/A";
+                        binLocationDiv.textContent = currentItemData.binLocation || "N/A";
+                        aditionalBinsDiv.textContent = currentItemData.aditionalBins || "N/A";
+                        qtyReceivedDiv.textContent = quantityInput.value || "0";
+                        qtyGrnDiv.textContent = currentItemData.defaultQtyGrn !== undefined ? currentItemData.defaultQtyGrn : "N/A";
+                        
+                        calculateDifference();
+                        updateLabel(currentItemData); // Asumo que updateLabel y otras funciones relacionadas están definidas
+                        showFeedback(`Artículo "${currentItemData.description || code}" (GRN: ${grn1Value}) encontrado.`, "success");
+
+                        quantityInput.focus();
+                        quantityInput.select();
+                    } else {
+                        // Si la respuesta no es OK (ej. 404), intenta leer el error como texto o JSON si es posible
+                        let errorMessage = `Error ${response.status} (${response.statusText}) al buscar el artículo.`;
+                        try {
+                            const errorData = await response.json(); // Intenta parsear como JSON
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+                            // Si no es JSON, podría ser HTML u otro texto
+                            // const errorText = await response.text(); // Podrías mostrar esto si quieres
+                            console.error("La respuesta de error no era JSON:", e);
+                        }
+                        showFeedback(errorMessage, "error");
+                        // No llames a clearItemSpecificFields() aquí necesariamente,
+                        // podrías querer mantener el código de ítem y GRN para que el usuario los corrija.
+                        // Solo limpia los campos que dependen de una búsqueda exitosa.
+                        itemDescriptionDiv.textContent = "";
+                        binLocationDiv.textContent = "";
+                        aditionalBinsDiv.textContent = "";
+                        qtyGrnDiv.textContent = ""; // Limpiar Qty GRN
+                        // clearLabel(); // También podría ser demasiado agresivo
+                    }
+                } catch (error) {
+                    console.error("Error en fetch findItemData:", error); // Esto mostrará el SyntaxError si el response.json() falla
+                    showFeedback("Error de conexión o respuesta inesperada al buscar. Verifique la consola y el backend.", "error");
+                    // clearItemSpecificFields(); // Podrías querer limpiar los campos aquí también
+                    itemDescriptionDiv.textContent = "";
+                    binLocationDiv.textContent = "";
+                    aditionalBinsDiv.textContent = "";
+                    qtyGrnDiv.textContent = "";
+                }
+            }
+
+            /**
+             * Clears form fields related to a specific item and resets the label preview.
+             */
+            function clearItemSpecificFields() {
+                // Clear input fields
+                if (itemCodeInput) itemCodeInput.value = "";
+                if (quantityInput) quantityInput.value = ""; // Clear quantity input
+                if (relocateBinInput) relocateBinInput.value = "";
+
+                // Clear read-only display divs
+                if (itemDescriptionDiv) itemDescriptionDiv.textContent = "";
+                if (binLocationDiv) binLocationDiv.textContent = "";
+                if (aditionalBinsDiv) aditionalBinsDiv.textContent = "";
+
+                // Clear the form's quantity summary section
+                if (qtyReceivedDiv) qtyReceivedDiv.textContent = "";
+                if (qtyGrnDiv) qtyGrnDiv.textContent = "";
+                if (differenceDiv) {
+                    differenceDiv.textContent = "";
+                    // Remove styling classes for difference
+                    differenceDiv.classList.remove("text-red-600", "text-blue-600", "font-bold");
+                }
+
+                clearLabel(); // Reset the label preview to defaults
+                currentItemData = null; // Clear stored item data
+                if (itemCodeInput) itemCodeInput.focus(); // Set focus back to item code input
+            }
+
+            /**
+             * Resets the label preview area to its default placeholder state.
+             */
+            function clearLabel() {
+                if (labelItemCode) labelItemCode.textContent = "ITEM CODE";
+                if (labelItemDescription) labelItemDescription.textContent = "Item Description";
+                if (labelQtyPackInput) labelQtyPackInput.value = "1"; // Default quantity for label input
+                if (labelQtyPackSpan) labelQtyPackSpan.textContent = "1"; // Sync span for printing
+                if (labelWeight) labelWeight.textContent = "N/A";
+                if (labelReceptionDate) labelReceptionDate.textContent = "DD/MM/YY";
+                if (labelBinLocation) labelBinLocation.textContent = "BIN";
+
+                // Clear the QR code container and show placeholder
+                if (qrCodeContainer) {
+                    qrCodeContainer.innerHTML = '<div class="qr-placeholder">QR Code</div>';
+                }
+                qrCodeInstance = null; // Reset the QRCode instance
+            }
+
+            /**
+             * Calculates and displays the difference in the form's summary section.
+             * Uses values currently displayed in the form summary's Qty Received and Qty GRN fields.
+             */
+            function calculateDifference() {
+                // Get values from the form's summary section
+                const received = parseInt(quantityInput.value || "0", 10); // Use main quantity input
+                const grn = parseInt(qtyGrnDiv.textContent || "0", 10); // Use GRN value displayed in summary
+
+                // Update the 'Qty. Received' display in the summary section itself
+                if (qtyReceivedDiv) qtyReceivedDiv.textContent = isNaN(received) ? "" : received;
+
+                // If either value isn't a valid number, clear the difference display
+                if (isNaN(received) || isNaN(grn)) {
+                    if (differenceDiv) differenceDiv.textContent = "";
+                    if (differenceDiv) differenceDiv.classList.remove("text-red-600", "text-blue-600", "font-bold");
+                    return;
+                }
+
+                // Calculate and display the difference
+                const diff = received - grn;
+                if (differenceDiv) differenceDiv.textContent = diff;
+
+                // Apply conditional styling (red for negative, blue for positive)
+                if (differenceDiv) {
+                    differenceDiv.classList.remove("text-red-600", "text-blue-600", "font-bold"); // Reset styles
+                    if (diff < 0) {
+                        differenceDiv.classList.add("text-red-600", "font-bold");
+                    } else if (diff > 0) {
+                        differenceDiv.classList.add("text-blue-600", "font-bold");
+                    }
+                    // No specific style added if diff is 0
+                }
+            }
+
+            /**
+             * Updates the visual label preview based on the current item data and form inputs.
+             * @param {object} item - The data object for the currently loaded item.
+             */
+            function updateLabel(item) {
+                if (!item) return; // Exit if no item data is available
+
+                // Use the quantity from the main form input, default to '1' if empty
+                const currentQuantity = quantityInput.value || "1";
+
+                // Update basic item info on the label
+                if (labelItemCode) labelItemCode.textContent = item.itemCode || "N/A";
+                if (labelItemDescription) labelItemDescription.textContent = item.description || "N/A";
+
+                // Update both the editable input and the print span for quantity
+                if (labelQtyPackInput) labelQtyPackInput.value = currentQuantity;
+                if (labelQtyPackSpan) labelQtyPackSpan.textContent = currentQuantity;
+
+                // Format and display weight
+                if (labelWeight) {
+                    const weightValue = parseFloat(item.weight); // Attempt to convert weight to number
+                    // Display formatted weight or 'N/A'
+                    labelWeight.textContent = !isNaN(weightValue) ? weightValue.toFixed(2) : "N/A";
+                }
+
+                // Format and display the current date
+                if (labelReceptionDate) {
+                    try {
+                        const today = new Date();
+                        // Format date as DD/MM/YY for es-CO locale
+                        labelReceptionDate.textContent = today.toLocaleDateString("es-CO", {
+                            day: "2-digit", month: "2-digit", year: "2-digit"
+                        });
+                    } catch (e) { // Fallback to manual formatting if locale fails
+                        const today = new Date();
+                        const d = String(today.getDate()).padStart(2, "0");
+                        const m = String(today.getMonth() + 1).padStart(2, "0"); // Month is 0-indexed
+                        const y = String(today.getFullYear()).slice(-2); // Get last two digits of year
+                        labelReceptionDate.textContent = `${d}/${m}/${y}`;
+                    }
+                }
+
+                // Update bin location: use relocated bin if entered, otherwise use original bin
+                if (labelBinLocation)
+                    labelBinLocation.textContent = relocateBinInput.value.trim() || item.binLocation || "N/A";
+
+                // Generate the QR code for the item code
+                generateQRCode(item.itemCode);
+            }
+
+            /**
+             * Generates a QR code in the designated container.
+             * @param {string} text - The text to encode in the QR code.
+             */
+            function generateQRCode(text) {
+                if (!qrCodeContainer) return; // Exit if container element doesn't exist
+                qrCodeContainer.innerHTML = ""; // Clear any previous QR code or placeholder
+
+                if (text) { // Only generate if text is provided
+                    try {
+                        // Create a new QRCode instance
+                        qrCodeInstance = new QRCode(qrCodeContainer, {
+                            text: text,
+                            width: 96,
+                            height: 96,
+                            colorDark: "#000000", // Black modules
+                            colorLight: "#ffffff", // White background
+                            correctLevel: QRCode.CorrectLevel.H // High error correction
+                        });
+                    } catch (e) {
+                        console.error("Error generando QR:", e);
+                        // Display error placeholder if generation fails
+                        qrCodeContainer.innerHTML = '<div class="qr-placeholder">Error QR</div>';
+                    }
+                } else {
+                    // Display default placeholder if no text is provided
+                    qrCodeContainer.innerHTML = '<div class="qr-placeholder">QR Code</div>';
+                }
+            }
+
+            /**
+             * Sends the collected form data to the backend API to add a new log entry.
+             */
+            async function addLogEntry() {
+                // Retrieve and clean form values
+                const grn1Value = grn1Input ? grn1Input.value.trim().toUpperCase() : "";
+                const waybill = waybillInput ? waybillInput.value.trim().toUpperCase() : "";
+                const itemCode = itemCodeInput ? itemCodeInput.value.trim().toUpperCase() : "";
+                const quantityStr = quantityInput ? quantityInput.value : "0";
+                const relocateBin = relocateBinInput ? relocateBinInput.value.trim().toUpperCase() : "";
+
+                // --- Frontend Input Validations ---
+                if (!grn1Value) { showFeedback("El campo 'GRN 1.' es obligatorio.", "error"); grn1Input?.focus(); return; }
+                if (!waybill) { showFeedback("El campo 'Waybill' es obligatorio.", "error"); waybillInput?.focus(); return; }
+                // Ensure an item has been successfully searched and matches the current input
+                if (!currentItemData || !itemCode || itemCode !== currentItemData.itemCode) {
+                    showFeedback("Busque y confirme un artículo válido antes de añadir.", "error");
+                    itemCodeInput?.focus(); return;
+                }
+                // Validate the quantity input
+                const quantity = parseInt(quantityStr);
+                if (isNaN(quantity) || quantity <= 0) {
+                    showFeedback("La cantidad recibida debe ser un número válido mayor que cero.", "error");
+                    quantityInput?.focus(); return;
+                }
+
+                // --- Prepare Data Payload for API ---
+                const logData = {
+                    importRef: grn1Value,
+                    waybill: waybill,
+                    itemCode: currentItemData.itemCode, // Use the item code confirmed from the search
+                    quantity: quantity, // Use the validated quantity
+                    relocateBin: relocateBin // Include relocated bin (can be empty)
+                };
+
+                showFeedback("Añadiendo registro...", "info"); // Indicate processing
+
+                // --- API Call (POST request to add log) ---
+                try {
+                    const response = await fetch(`${API_BASE_URL}/add_log`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" }, // Specify JSON content
+                        body: JSON.stringify(logData) // Convert JS object to JSON string
+                    });
+                    const result = await response.json(); // Parse the JSON response from the backend
+
+                    if (response.ok) { // Check if backend responded successfully (status 2xx)
+                        showFeedback(result.message || "Registro añadido con éxito.", "success");
+                        // Add the new row to the table using the data returned by the backend
+                        addLogRowToTable(result.entry);
+                        // Re-sort the table to maintain the current sort order
+                        sortTableByColumn(currentSortColumnIndex, currentSortDirection, true);
+                        checkTableEmpty(); // Update visibility of the "empty table" message
+                        clearItemSpecificFields(); // Clear form fields for the next entry
+                        itemCodeInput?.focus(); // Set focus back to item code input
+                    } else {
+                        // Handle errors reported by the backend (e.g., validation errors, internal errors)
+                        showFeedback(result.error || `Error ${response.status} al añadir el registro.`, "error");
+                    }
+                } catch (error) {
+                    // Handle network errors or issues with the fetch call itself
+                    console.error("Error en fetch addLogEntry:", error);
+                    showFeedback("Error de conexión al añadir. Verifique la consola y el backend.", "error");
+                }
+            }
+
+            /**
+             * Adds a new row to the log table in the HTML.
+             * @param {object} entry - The log entry data object returned from the backend.
+             */
+            function addLogRowToTable(entry) {
+                if (!logTableBody || !entry) return; // Exit if table body or entry data is missing
+
+                // Insert new row at the beginning of the table body for immediate visibility
+                const newRow = logTableBody.insertRow(0);
+                newRow.classList.add("hover:bg-gray-100"); // Add hover effect class
+
+                // Populate cells based on the structure of the 'entry' object from the backend response
+                newRow.insertCell().textContent = entry.importRef || "-";
+                newRow.insertCell().textContent = entry.waybill || "-";
+                newRow.insertCell().textContent = entry.itemCode || "-";
+                newRow.insertCell().textContent = entry.itemDescription || "-";
+                newRow.insertCell().textContent = entry.binLocation || "-"; // Original bin location
+                newRow.insertCell().textContent = entry.relocatedBin || "-"; // New (relocated) bin
+                newRow.insertCell().textContent = entry.qtyReceived !== undefined ? entry.qtyReceived : "-";
+                // Display the expected GRN quantity (might be total for item as per backend logic)
+                newRow.insertCell().textContent = entry.qtyGrn !== undefined ? entry.qtyGrn : "-";
+
+                // Populate the difference cell and apply styling
+                const diffCell = newRow.insertCell();
+                // Use the 'difference' value provided by the backend (might be instant diff)
+                const difference = entry.difference;
+                diffCell.textContent = difference !== undefined ? difference : "-";
+
+                // Apply conditional styling based on the difference value
+                diffCell.classList.remove("text-red-600", "text-blue-600", "font-bold"); // Reset styles first
+                if (difference !== undefined) {
+                    if (difference < 0) {
+                        diffCell.classList.add("text-red-600", "font-bold");
+                    } else if (difference > 0) {
+                        diffCell.classList.add("text-blue-600", "font-bold");
+                    }
+                    // No special style if difference is 0
+                }
+
+                // Format and display the timestamp
+                const timeCell = newRow.insertCell();
+                try {
+                    // Attempt to format timestamp using local settings (es-CO)
+                    timeCell.textContent = entry.timestamp
+                        ? new Date(entry.timestamp).toLocaleString("es-CO", { hour12: false })
+                        : "-";
+                } catch (e) {
+                    // Fallback to raw timestamp if formatting fails
+                    timeCell.textContent = entry.timestamp || "-";
+                }
+            }
+
+            /**
+             * Fetches the initial set of log records from the backend when the page loads.
+             */
+            async function loadInitialLogs() {
+                showFeedback("Cargando registros previos...", "info"); // Show loading message
+                try {
+                    const response = await fetch(`${API_BASE_URL}/get_logs`); // Call backend API
+                    if (response.ok) { // Check for successful response
+                        const logs = await response.json(); // Parse log data
+                        logTableBody.innerHTML = ""; // Clear any existing rows in the table body
+                        // Add each log entry to the table (backend returns newest first)
+                        logs.forEach(addLogRowToTable);
+
+                        // Apply the default sorting after all rows are added
+                        updateSortIndicators(currentSortColumnIndex, currentSortDirection);
+                        sortTableByColumn(currentSortColumnIndex, currentSortDirection, true); // Force initial sort
+
+                        checkTableEmpty(); // Show/hide the "empty table" message
+
+                        // Hide the initial loading message if it's still displayed
+                        if (feedbackArea.textContent === "Cargando registros previos...") {
+                           feedbackArea.classList.remove("show");
+                           // Wait for fade out before hiding completely
+                           setTimeout(() => {
+                                if (!feedbackArea.classList.contains("show")) {
+                                    feedbackArea.className = "feedback";
+                                    feedbackArea.style.display = "none";
+                                }
+                           }, 300);
+                        }
+                    } else {
+                        // Handle errors during initial load
+                        const errorData = await response.json().catch(() => ({})); // Try to get error details
+                        showFeedback(errorData.error || `Error ${response.status} al cargar registros.`, "error");
+                        checkTableEmpty(); // Ensure empty message is shown if needed
+                    }
+                } catch (error) {
+                    // Handle network errors
+                    console.error("Error en fetch loadInitialLogs:", error);
+                    showFeedback("Error de conexión al cargar registros. Verifique la consola y el backend.", "error");
+                    checkTableEmpty();
+                }
+            }
+
+            /**
+             * Handles changes in the main quantity input field.
+             * Updates the form summary and the label preview.
+             */
+            function handleQuantityChange() {
+                const currentQuantity = quantityInput.value || "0";
+                // Update the 'Qty. Received' display in the form summary section
+                if (qtyReceivedDiv) qtyReceivedDiv.textContent = currentQuantity;
+                // Recalculate the difference shown in the form summary
+                calculateDifference();
+
+                // Update the quantity displayed on the label preview (both input and span)
+                if (labelQtyPackInput) labelQtyPackInput.value = currentQuantity;
+                if (labelQtyPackSpan) labelQtyPackSpan.textContent = currentQuantity;
+            }
+
+            /**
+             * Handles changes in the 'Relocate Bin' input field.
+             * Updates the bin location displayed on the label preview.
+             */
+            function handleRelocateBinChange() {
+                // Only update the label if item data is currently loaded
+                if (currentItemData && labelBinLocation) {
+                    // Display the value from the 'Relocate Bin' input if it's not empty,
+                    // otherwise, display the original bin location from the loaded item data.
+                    labelBinLocation.textContent =
+                        relocateBinInput.value.trim() || currentItemData.binLocation || "N/A";
+                }
+            }
+
+            /**
+             * Checks if the log table body has any rows and toggles the visibility
+             * of the "No hay registros aún" message accordingly.
+             */
+            function checkTableEmpty() {
+                if (logTableBody && emptyTableMessage) {
+                    // Hide the message if rows exist (length > 0), show it otherwise
+                    emptyTableMessage.classList.toggle("hidden", logTableBody.rows.length > 0);
+                }
+            }
+
+            /**
+             * Initiates the browser's print dialog, targeting the label preview area.
+             */
+            function printLabel() {
+                // Check if an item is loaded before allowing print
+                if (!currentItemData) {
+                    showFeedback("Busque un artículo para poder imprimir su etiqueta.", "error");
+                    return;
+                }
+                // IMPORTANT: Ensure the span used for printing reflects the current input value
+                if (labelQtyPackInput && labelQtyPackSpan) {
+                    labelQtyPackSpan.textContent = labelQtyPackInput.value || "1"; // Default to '1' if input is empty
+                }
+                // Trigger the browser's print functionality
+                window.print();
+                showFeedback("Diálogo de impresión abierto.", "info"); // Inform user
+            }
+
+            /**
+             * Gets the sortable value from a table cell, converting to number or Date if applicable.
+             * @param {HTMLTableCellElement} cell - The table cell (<td>).
+             * @param {number} columnIndex - The zero-based index of the column.
+             * @returns {string|number|Date} - The value processed for sorting.
+             */
+            function getCellValue(cell, columnIndex) {
+                const value = cell.textContent.trim(); // Get cell text content
+                const numericColumns = [6, 7, 8]; // Indices for Qty. Received, Qty. GRN, Difference
+                const dateTimeColumn = 9; // Index for Timestamp
+
+                if (numericColumns.includes(columnIndex)) {
+                    // Attempt to convert to a floating-point number
+                    const num = parseFloat(value.replace(/,/g, "")); // Handle potential commas
+                    // Return -Infinity for non-numeric values to ensure consistent sorting
+                    return isNaN(num) ? -Infinity : num;
+                } else if (columnIndex === dateTimeColumn) {
+                    try {
+                        // Attempt to parse timestamp using expected local format (DD/MM/YYYY, HH:MM:SS)
+                        const parts = value.match(/(\d+)\/(\d+)\/(\d+),\s*(\d+):(\d+):(\d+)/);
+                        if (parts) {
+                            // Construct an ISO-like string for more reliable parsing by Date constructor
+                            // Format: YYYY-MM-DDTHH:MM:SS
+                             const isoString = `${parts[3]}-${String(parts[2]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}T${String(parts[4]).padStart(2, '0')}:${String(parts[5]).padStart(2, '0')}:${String(parts[6]).padStart(2, '0')}`;
+                             const date = new Date(isoString);
+                             // Return epoch (0) if parsing results in an invalid date
+                             return isNaN(date.getTime()) ? new Date(0) : date;
+                        }
+                        // Fallback: Try direct parsing if the format didn't match the regex
+                        const date = new Date(value);
+                        return isNaN(date.getTime()) ? new Date(0) : date; // Return epoch if invalid
+                    } catch (e) {
+                        return new Date(0); // Return epoch on any parsing error
+                    }
+                }
+                // For other columns, return lowercase string for case-insensitive sorting
+                return value.toLowerCase();
+            }
+
+            /**
+             * Sorts the log table rows based on the content of a specific column.
+             * Toggles between ascending and descending order on subsequent clicks of the same column header.
+             * @param {number} columnIndex - The zero-based index of the column to sort by.
+             * @param {string} [initialDirection='asc'] - The direction to use if forced.
+             * @param {boolean} [forceDirection=false] - If true, uses initialDirection; otherwise, toggles if same column.
+             */
+            function sortTableByColumn(columnIndex, initialDirection = "asc", forceDirection = false) {
+                if (!logTableBody) return; // Exit if table body doesn't exist
+
+                const rows = Array.from(logTableBody.rows); // Get table rows as an array
+                let direction = initialDirection; // Default sort direction
+
+                // Determine sort direction: If not forcing and clicking the same column, toggle direction
+                if (!forceDirection && columnIndex === currentSortColumnIndex) {
+                    direction = currentSortDirection === "asc" ? "desc" : "asc";
+                }
+
+                // Update the global state tracking the current sort column and direction
+                currentSortColumnIndex = columnIndex;
+                currentSortDirection = direction;
+
+                // Sort the array of rows
+                rows.sort((rowA, rowB) => {
+                    // Basic check to prevent errors if cells are missing (unlikely)
+                    if (!rowA.cells[columnIndex] || !rowB.cells[columnIndex]) return 0;
+
+                    // Get the processed values from the cells for comparison
+                    const valueA = getCellValue(rowA.cells[columnIndex], columnIndex);
+                    const valueB = getCellValue(rowB.cells[columnIndex], columnIndex);
+
+                    // Perform comparison
+                    let comparison = 0;
+                    if (valueA > valueB) {
+                        comparison = 1;
+                    } else if (valueA < valueB) {
+                        comparison = -1;
+                    }
+                    // Invert comparison result if sorting in descending order
+                    return direction === "desc" ? comparison * -1 : comparison;
+                });
+
+                // Re-append the sorted rows to the table body
+                logTableBody.innerHTML = ""; // Clear existing rows first
+                rows.forEach(row => logTableBody.appendChild(row));
+
+                // Update the visual sorting indicators (arrows) in the table headers
+                updateSortIndicators(columnIndex, direction);
+            }
+
+            /**
+             * Updates the visual sort indicators (up/down arrows) on table headers.
+             * @param {number} activeColumnIndex - The index of the currently sorted column.
+             * @param {string} direction - The current sort direction ('asc' or 'desc').
+             */
+            function updateSortIndicators(activeColumnIndex, direction) {
+                if (!logTable) return; // Exit if table element doesn't exist
+                // Get all sortable header elements
+                const headers = logTable.querySelectorAll("thead th.sortable-header");
+                headers.forEach((header, index) => {
+                    // Remove existing sort classes from all headers first
+                    header.classList.remove("sort-asc", "sort-desc");
+                    // Add the appropriate sort class only to the currently active header
+                    if (index === activeColumnIndex) {
+                        header.classList.add(direction === "asc" ? "sort-asc" : "sort-desc");
+                    }
+                });
+            }
+
+            /**
+             * Initiates the download of the full log Excel file by calling the backend API.
+             */
+            async function exportLogToExcel() {
+                 // Optional client-side check: prevent API call if table is visibly empty
+                 if (logTableBody.rows.length === 0) {
+                    showFeedback("No hay datos en la tabla para exportar el log completo.", "error");
+                    return;
+                }
+                showFeedback("Generando archivo Excel del log completo...", "info"); // User feedback
+                try {
+                    // Call the backend endpoint responsible for generating the full log Excel
+                    const response = await fetch(`${API_BASE_URL}/export_log`);
+
+                    if (response.ok) { // Check for successful response (status 2xx)
+                        // --- File Download Logic ---
+                        // Try to extract filename from Content-Disposition header
+                        const disposition = response.headers.get("Content-Disposition");
+                        let filename = "inbound_log_completo.xlsx"; // Default filename
+                        if (disposition && disposition.includes("attachment")) {
+                            // Regex to find filename*= or filename=
+                            const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                            if (filenameMatch && filenameMatch[1]) {
+                                // Clean up quotes from the extracted filename
+                                filename = filenameMatch[1].replace(/['"]/g, "");
+                            }
+                        }
+
+                        const blob = await response.blob(); // Get the file data as a Blob
+                        triggerDownload(blob, filename); // Use helper function to start download
+                        showFeedback("Archivo Excel del log completo listo para descarga.", "success");
+                        // --- End File Download Logic ---
+
+                    } else {
+                        // Handle errors reported by the backend
+                        const errorData = await response.json().catch(() => ({ error: `Error ${response.status} del servidor` }));
+                        showFeedback(errorData.error || "Error al generar el archivo Excel del log completo.", "error");
+                    }
+                } catch (error) {
+                    // Handle network errors
+                    console.error("Error en fetch exportLogToExcel:", error);
+                    showFeedback("Error de conexión al exportar log completo. Verifique la consola y el backend.", "error");
+                }
+            }
+
+             /**
+             * Initiates the download of the summary Excel file by calling the backend API.
+             */
+            async function exportSummaryToExcel() {
+                 // Optional client-side check (backend also checks DB)
+                 if (logTableBody.rows.length === 0) {
+                    showFeedback("No hay registros en la tabla para generar un resumen.", "info");
+                    // Decide whether to proceed or stop here. Backend will return 404 if DB is empty.
+                    // return;
+                }
+
+                showFeedback("Generando resumen Excel desde el servidor...", "info"); // User feedback
+
+                try {
+                    // Call the NEW backend endpoint for generating the summary
+                    const response = await fetch(`${API_BASE_URL}/export_summary`);
+
+                    if (response.ok) { // Check for successful response (status 2xx)
+                        // --- File Download Handling (Identical to exportLogToExcel) ---
+                        const disposition = response.headers.get("Content-Disposition");
+                        let filename = "resumen_recepcion.xlsx"; // Default filename
+                        if (disposition && disposition.includes("attachment")) {
+                            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                            const matches = filenameRegex.exec(disposition);
+                            if (matches != null && matches[1]) {
+                                filename = matches[1].replace(/['"]/g, "");
+                            }
+                        }
+                        const blob = await response.blob(); // Get the Excel file Blob
+                        triggerDownload(blob, filename); // Trigger download
+                        showFeedback("Resumen Excel generado para descarga.", "success");
+                        // --- End File Download Handling ---
+
+                    } else {
+                        // Handle errors reported by the backend (e.g., 404 No Data, 500 Server Error)
+                        const errorData = await response.json().catch(() => ({ error: `Error ${response.status} del servidor` }));
+                        showFeedback(errorData.error || "Error al generar el resumen Excel desde el servidor.", "error");
+                    }
+                } catch (error) {
+                    // Handle network errors
+                    console.error("Error en fetch exportSummaryToExcel:", error);
+                    showFeedback("Error de conexión al generar el resumen. Verifique la consola y el backend.", "error");
+                }
+            }
+
+            /**
+             * Triggers a browser download for a given Blob object.
+             * @param {Blob} blob - The Blob data (e.g., the Excel file).
+             * @param {string} filename - The desired name for the downloaded file.
+             */
+            function triggerDownload(blob, filename) {
+                // Create a temporary URL for the Blob
+                const downloadUrl = window.URL.createObjectURL(blob);
+                // Create a temporary anchor element
+                const link = document.createElement("a");
+                link.href = downloadUrl;
+                link.setAttribute("download", filename); // Set the download attribute
+                // Append the link to the body, click it, and then remove it
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                // Revoke the temporary URL to free up memory
+                window.URL.revokeObjectURL(downloadUrl);
+            }
+
+
+            // --- Event Listeners Setup ---
+
+            // Find item button and Enter key in item code input
+            if (findItemBtn) findItemBtn.addEventListener("click", findItemData);
+            if (itemCodeInput) itemCodeInput.addEventListener("keypress", (e) => { if (e.key === 'Enter') { e.preventDefault(); findItemData(); } });
+
+            // Input change listeners
+            if (quantityInput) quantityInput.addEventListener("input", handleQuantityChange);
+            if (relocateBinInput) relocateBinInput.addEventListener("input", handleRelocateBinChange);
+
+            // Action button listeners
+            if (addLogEntryBtn) addLogEntryBtn.addEventListener("click", addLogEntry);
+            if (printLabelBtn) printLabelBtn.addEventListener("click", printLabel);
+            // Export buttons now trigger backend API calls
+            if (exportLogBtn) exportLogBtn.addEventListener("click", exportLogToExcel);
+            if (exportSummaryBtn) exportSummaryBtn.addEventListener("click", exportSummaryToExcel);
+
+            // Listener for the editable quantity input on the label preview
+            if (labelQtyPackInput && labelQtyPackSpan) {
+                labelQtyPackInput.addEventListener("input", () => {
+                    // Keep the hidden span (used for printing) in sync
+                    labelQtyPackSpan.textContent = labelQtyPackInput.value || "1"; // Default to '1' if cleared
+                });
+            }
+
+            // Table header click listener for sorting (using event delegation)
+            if (logTable) {
+                const thead = logTable.querySelector("thead");
+                if (thead) {
+                    thead.addEventListener("click", (event) => {
+                        // Find the closest 'th' element with the 'sortable-header' class
+                        const header = event.target.closest("th.sortable-header");
+                        if (header) {
+                            // Get the column index from the 'data-column-index' attribute
+                            const columnIndex = parseInt(header.dataset.columnIndex);
+                            if (!isNaN(columnIndex)) {
+                                // Call the sorting function
+                                sortTableByColumn(columnIndex);
+                            }
+                        }
+                    });
+                } else { console.error("No se encontró el elemento thead."); }
+            } else { console.error("No se encontró la tabla de logs."); }
+
+            // --- Initialization ---
+            // Code to run after the DOM is fully loaded
+            document.addEventListener("DOMContentLoaded", () => {
+                // Set up the initial state of the label preview
+                if (qrCodeContainer && labelItemCode && labelItemDescription && labelQtyPackInput &&
+                    labelQtyPackSpan && labelWeight && labelReceptionDate && labelBinLocation) {
+                    clearLabel(); // Reset label to defaults
+                }
+                // Set initial focus on the item code input field
+                if (itemCodeInput) itemCodeInput.focus();
+                // Load initial log entries from the backend
+                if (logTableBody && emptyTableMessage) {
+                    loadInitialLogs();
+                } else {
+                    console.error("Elementos de tabla no encontrados para cargar logs iniciales.");
+                }
+            });
+        </script>
+    </body>
+</html>
